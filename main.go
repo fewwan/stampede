@@ -35,10 +35,19 @@ var Colors = []string{
 
 var Reset = "\033[0m"
 
+var maxWidth int
+var args Args
+
 type Task struct {
 	Label   string
 	Color   int
 	Command string
+}
+
+type TaskResult struct {
+	Task     Task
+	ExitCode int
+	Err      error
 }
 
 type Args struct {
@@ -56,9 +65,6 @@ func getColor(label string) int {
 	h.Write([]byte(label))
 	return int(h.Sum32()) % len(Colors)
 }
-
-var maxWidth int
-var args Args
 
 func readLines(path string) ([]string, error) {
 	file, err := os.Open(path)
@@ -80,7 +86,6 @@ func readLines(path string) ([]string, error) {
 
 func parseTasks(lines []string) []Task {
 	var tasks []Task
-
 	labelCount := map[string]int{}
 
 	for _, line := range lines {
@@ -122,6 +127,32 @@ func parseTasks(lines []string) []Task {
 	}
 
 	return tasks
+}
+
+func calcMaxWidth(tasks []Task) int {
+	width := 0
+	for _, t := range tasks {
+		if len(t.Label) > width {
+			width = len(t.Label)
+		}
+	}
+	return width
+}
+
+func writeOut(task Task, message string, w io.Writer) {
+	if args.Raw {
+		fmt.Fprintln(w, message)
+		return
+	}
+
+	color := ""
+	reset := ""
+	if !args.NoColor {
+		color = Colors[task.Color]
+		reset = Reset
+	}
+	padding := strings.Repeat(" ", maxWidth-len(task.Label))
+	fmt.Fprintf(w, "%s%s%s |%s %s\n", color, task.Label, padding, reset, message)
 }
 
 func parseArgs() {
@@ -183,30 +214,6 @@ Flags:
 		flag.Usage()
 		os.Exit(1)
 	}
-}
-
-func writeOut(task Task, message string, w io.Writer) {
-	if args.Raw {
-		fmt.Fprintln(w, message)
-		return
-	}
-	color := ""
-	reset := ""
-	if !args.NoColor {
-		color = Colors[task.Color]
-		reset = Reset
-	}
-	fmt.Fprintf(w, "%s%s%s |%s %s\n", color, task.Label, strings.Repeat(" ", maxWidth-len(task.Label)), reset, message)
-}
-
-func calcMaxWidth(tasks []Task) int {
-	width := 0
-	for _, t := range tasks {
-		if len(t.Label) > width {
-			width = len(t.Label)
-		}
-	}
-	return width
 }
 
 func runTask(ctx context.Context, task Task, wg *sync.WaitGroup, sem chan struct{}, exitOnFail *int32, results chan<- TaskResult) {
@@ -281,12 +288,6 @@ func copyOutput(task Task, r io.Reader, w io.Writer, wg *sync.WaitGroup) {
 	for scanner.Scan() {
 		writeOut(task, scanner.Text(), w)
 	}
-}
-
-type TaskResult struct {
-	Task     Task
-	ExitCode int
-	Err      error
 }
 
 func main() {
