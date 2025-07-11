@@ -42,4 +42,5 @@ cd stampede
 go build
 ```
 ## Example
-![](https://github.com/user-attachments/assets/1f17fd4b-8935-4c26-9385-51a9732c623a)
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/0c003842-286c-434d-9d19-d8b4a6f4498b" />
+
