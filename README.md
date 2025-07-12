@@ -1,4 +1,4 @@
-# stampede
+# 🐐 Stampede
 
 `stampede` is a simple CLI tool to run multiple commands concurrently, each with optional labels and colored output.
 
